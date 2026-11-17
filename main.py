@@ -12,6 +12,12 @@ from analisis import buscar_duplicados, comparar
 
 logger = logging.getLogger(__name__)
 
+# Link de Ko-fi, Buy Me a Coffee, etc. Si no está definido, no se muestra el botón.
+DONACIONES_URL = os.getenv("DONACIONES_URL", "").strip()
+if DONACIONES_URL and not DONACIONES_URL.startswith("https://"):
+    logger.warning("DONACIONES_URL debe empezar con https://; se ignora el botón de donaciones.")
+    DONACIONES_URL = ""
+
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 ytmusic = YTMusic()  # No requiere login porque solo va a LEER playlists públicas/deslistadas
@@ -60,7 +66,7 @@ def respuesta_error(e: ErrorPlaylist) -> JSONResponse:
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
+    return templates.TemplateResponse(request=request, name="index.html", context={"donaciones_url": DONACIONES_URL})
 
 
 # Las rutas son síncronas a propósito: FastAPI las ejecuta en un hilo aparte, así

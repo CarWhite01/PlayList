@@ -75,3 +75,10 @@ def test_misma_playlist_se_descarga_una_vez(monkeypatch):
                         lambda pid, limit: llamadas.append(pid) or {"title": "X", "tracks": [{"title": "Uno", "artists": []}]})
     r = cliente.post("/comparar", data={"url_a": "https://youtube.com/playlist?list=P", "url_b": "https://music.youtube.com/playlist?list=P"}).json()
     assert llamadas == ["P"] and r["en_comun"] == 1 and r["faltan_en_a"] == r["faltan_en_b"] == []
+
+
+def test_boton_donaciones_solo_si_hay_link(monkeypatch):
+    assert "Invítame un café" not in cliente.get("/").text
+    monkeypatch.setattr(main, "DONACIONES_URL", "https://ko-fi.com/ejemplo")
+    html = cliente.get("/").text
+    assert "Invítame un café" in html and 'href="https://ko-fi.com/ejemplo"' in html

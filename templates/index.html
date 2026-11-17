@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YT Music Duplicate Finder - Limpia tu Playlist</title>
-    
-    <meta name="description" content="Herramienta gratuita para detectar y limpiar canciones duplicadas o repetidas en tus playlists de YouTube Music en segundos.">
-    <meta name="keywords" content="youtube music, limpiar playlist, borrar canciones repetidas, duplicados, organizar musica, app gratis">
+    <title>Playlist Cleaner - Duplicados y comparador de playlists</title>
+
+    <meta name="description" content="Herramienta gratuita para detectar canciones repetidas en tus playlists de YouTube Music y comparar playlists de YouTube y Spotify para ver qué canciones faltan.">
+    <meta name="keywords" content="youtube music, spotify, limpiar playlist, borrar canciones repetidas, duplicados, comparar playlists, canciones faltantes, organizar musica, app gratis">
     <meta name="author" content="Carlos Josafat">
     <meta name="robots" content="index, follow">
 
-    <meta property="og:title" content="YT Music Duplicate Finder">
-    <meta property="og:description" content="Descubre qué canciones tienes repetidas en tu playlist de YouTube Music con un solo clic.">
+    <meta property="og:title" content="Playlist Cleaner">
+    <meta property="og:description" content="Encuentra canciones repetidas y compara tus playlists de YouTube y Spotify con un solo clic.">
     <meta property="og:type" content="website">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -23,22 +23,42 @@
         <h1 class="text-4xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
             Playlist Cleaner
         </h1>
-        <p class="text-zinc-400 mt-2 text-sm sm:text-base">Detecta canciones repetidas en tus listas de YouTube Music al instante, gue.</p>
+        <p class="text-zinc-400 mt-2 text-sm sm:text-base">Detecta canciones repetidas y compara tus playlists de YouTube y Spotify al instante, gue.</p>
     </div>
 
-    <div class="max-w-3xl w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl">
+    {% if spotify_configurado %}
+    <div class="max-w-3xl w-full mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-3">
+        {% if spotify_conectado %}
+            <p class="text-sm text-zinc-300"><span class="text-emerald-400 font-bold">●</span> Spotify conectado</p>
+            <form method="post" action="/spotify/logout">
+                <button type="submit" class="text-xs text-zinc-400 hover:text-zinc-200 underline underline-offset-4">Desconectar</button>
+            </form>
+        {% else %}
+            <p class="text-sm text-zinc-400">Para usar playlists de Spotify, conecta tu cuenta.</p>
+            <a href="/spotify/login" class="bg-[#1DB954] hover:bg-[#1aa34a] text-zinc-950 font-bold px-5 py-2 rounded-xl text-sm transition-colors">Conectar Spotify</a>
+        {% endif %}
+    </div>
+    {% if spotify_estado == "error" %}
+    <p class="max-w-3xl w-full -mt-3 mb-6 text-sm text-amber-400">No se pudo conectar con Spotify. Inténtalo de nuevo.</p>
+    {% endif %}
+    {% endif %}
+
+    <!-- Duplicados -->
+    <section class="max-w-3xl w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl">
+        <h2 class="text-lg font-bold text-zinc-100">Canciones repetidas</h2>
+        <p class="text-zinc-500 text-sm mb-4">Pega la URL de una playlist de YouTube{% if spotify_configurado %} o Spotify{% endif %}.</p>
+
         <form id="form-analizar" class="flex flex-col sm:flex-row gap-3">
-            <input 
-                type="text" 
+            <input
+                type="text"
                 id="url-input"
-                name="url" 
+                name="url"
                 required
-                placeholder="Pega la URL de tu playlist aquí..." 
+                placeholder="Pega la URL de tu playlist aquí..."
                 class="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-cyan-500 transition-colors text-sm"
             >
-            <button 
-                type="submit" 
-                id="btn-analizar"
+            <button
+                type="submit"
                 class="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-zinc-950 font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-cyan-500/10 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
                 Analizar Lista
@@ -66,47 +86,80 @@
                         </tr>
                     </thead>
                     <tbody id="tabla-cuerpo" class="text-sm divide-y divide-zinc-900">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
         </div>
-    </div>
+    </section>
+
+    <!-- Comparador -->
+    <section class="max-w-3xl w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl mt-8">
+        <h2 class="text-lg font-bold text-zinc-100">Comparar dos playlists</h2>
+        <p class="text-zinc-500 text-sm mb-4">Descubre qué canciones le faltan a cada una. Puedes mezclar YouTube{% if spotify_configurado %} y Spotify{% endif %}.</p>
+
+        <form id="form-comparar" class="flex flex-col gap-3">
+            <input type="text" name="url_a" required placeholder="URL de la playlist A..."
+                class="bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 transition-colors text-sm">
+            <input type="text" name="url_b" required placeholder="URL de la playlist B..."
+                class="bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 transition-colors text-sm">
+            <button type="submit"
+                class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-zinc-950 font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-emerald-500/10 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+                Comparar Playlists
+            </button>
+        </form>
+
+        <div id="loader-comparar" class="hidden flex flex-col items-center justify-center my-12 animate-pulse">
+            <div class="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin"></div>
+            <p class="text-zinc-500 text-xs mt-3 tracking-wider uppercase">Comparando playlists...</p>
+        </div>
+
+        <div id="resultados-comparar" class="mt-8 hidden">
+            <div class="flex justify-between items-center border-b border-zinc-800 pb-4 mb-4">
+                <span id="cmp-comun" class="text-xs text-zinc-500 font-medium"></span>
+                <span id="cmp-status" class="px-3 py-1 rounded-full text-xs font-bold"></span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="rounded-xl border border-zinc-800 bg-zinc-950/50 overflow-hidden">
+                    <h3 class="p-4 text-xs text-zinc-400 uppercase tracking-wider border-b border-zinc-800 bg-zinc-900/50">
+                        Faltan en <span id="cmp-nombre-b" class="text-emerald-400 normal-case"></span>
+                    </h3>
+                    <ul id="cmp-lista-b" class="text-sm divide-y divide-zinc-900 max-h-96 overflow-y-auto"></ul>
+                </div>
+                <div class="rounded-xl border border-zinc-800 bg-zinc-950/50 overflow-hidden">
+                    <h3 class="p-4 text-xs text-zinc-400 uppercase tracking-wider border-b border-zinc-800 bg-zinc-900/50">
+                        Faltan en <span id="cmp-nombre-a" class="text-emerald-400 normal-case"></span>
+                    </h3>
+                    <ul id="cmp-lista-a" class="text-sm divide-y divide-zinc-900 max-h-96 overflow-y-auto"></ul>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <script>
-        const form = document.getElementById('form-analizar');
-        const boton = document.getElementById('btn-analizar');
-        const loader = document.getElementById('loader');
-        const resultados = document.getElementById('resultados');
-        const tablaCuerpo = document.getElementById('tabla-cuerpo');
-        const resTotal = document.getElementById('res-total');
-        const resStatus = document.getElementById('res-status');
-
-        // Crea una celda usando textContent para que los títulos no se interpreten como HTML (evita XSS)
-        function celda(texto, clases, colspan) {
-            const td = document.createElement('td');
-            td.className = clases;
-            td.textContent = texto;
-            if (colspan) td.colSpan = colspan;
-            return td;
+        // Crea un elemento con texto usando textContent para que los títulos no se interpreten como HTML (evita XSS)
+        function elemento(tag, texto, clases) {
+            const el = document.createElement(tag);
+            if (clases) el.className = clases;
+            if (texto !== undefined) el.textContent = texto;
+            return el;
         }
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (boton.disabled) return;
+        // Envía un formulario y devuelve el JSON, o null si hubo un error (ya mostrado al usuario)
+        async function enviar(form, ruta, loader, resultados) {
+            const boton = form.querySelector('button[type="submit"]');
+            if (boton.disabled) return null;
 
-            // Resetear interfaz
             boton.disabled = true;
             loader.classList.remove('hidden');
             resultados.classList.add('hidden');
-            tablaCuerpo.replaceChildren();
 
             try {
                 let response;
                 try {
-                    response = await fetch('/analizar', { method: 'POST', body: new FormData(form) });
+                    response = await fetch(ruta, { method: 'POST', body: new FormData(form) });
                 } catch {
                     alert("Error de conexión con el servidor backend.");
-                    return;
+                    return null;
                 }
 
                 let data;
@@ -114,42 +167,102 @@
                     data = await response.json();
                 } catch {
                     alert(`El servidor respondió con un error (${response.status}). Intenta de nuevo más tarde.`);
-                    return;
+                    return null;
                 }
 
                 if (!response.ok) {
                     alert(data.error || "Ocurrió un error inesperado.");
-                    return;
+                    return null;
                 }
-
-                resultados.classList.remove('hidden');
-                resTotal.textContent = `Total analizado: ${data.total} canciones.`;
-
-                if (data.duplicados.length === 0) {
-                    resStatus.className = "px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400";
-                    resStatus.textContent = "Playlist Limpia";
-                    const fila = document.createElement('tr');
-                    fila.appendChild(celda("¡Felicidades, gue! No hay ninguna canción repetida.", "p-8 text-center text-zinc-500 italic", 3));
-                    tablaCuerpo.appendChild(fila);
-                } else {
-                    resStatus.className = "px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400";
-                    resStatus.textContent = `${data.duplicados.length} Duplicados`;
-
-                    data.duplicados.forEach(track => {
-                        const fila = document.createElement('tr');
-                        fila.className = "hover:bg-zinc-900/30 transition-colors";
-                        fila.append(
-                            celda(track.Título, "p-4 font-semibold text-zinc-200"),
-                            celda(track.Artista, "p-4 text-zinc-400"),
-                            celda(track.Repeticiones, "p-4 text-center font-bold text-cyan-400"),
-                        );
-                        tablaCuerpo.appendChild(fila);
-                    });
-                }
+                return data;
             } finally {
                 loader.classList.add('hidden');
                 boton.disabled = false;
             }
+        }
+
+        // ---- Duplicados
+        const formAnalizar = document.getElementById('form-analizar');
+        formAnalizar.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const resultados = document.getElementById('resultados');
+            const tablaCuerpo = document.getElementById('tabla-cuerpo');
+            const resTotal = document.getElementById('res-total');
+            const resStatus = document.getElementById('res-status');
+
+            const data = await enviar(formAnalizar, '/analizar', document.getElementById('loader'), resultados);
+            if (!data) return;
+
+            tablaCuerpo.replaceChildren();
+            resultados.classList.remove('hidden');
+            resTotal.textContent = `Total analizado: ${data.total} canciones.`;
+
+            if (data.duplicados.length === 0) {
+                resStatus.className = "px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400";
+                resStatus.textContent = "Playlist Limpia";
+                const fila = document.createElement('tr');
+                const celda = elemento('td', "¡Felicidades, gue! No hay ninguna canción repetida.", "p-8 text-center text-zinc-500 italic");
+                celda.colSpan = 3;
+                fila.appendChild(celda);
+                tablaCuerpo.appendChild(fila);
+                return;
+            }
+
+            resStatus.className = "px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400";
+            resStatus.textContent = `${data.duplicados.length} Duplicados`;
+            data.duplicados.forEach(track => {
+                const fila = elemento('tr', undefined, "hover:bg-zinc-900/30 transition-colors");
+                fila.append(
+                    elemento('td', track.Título, "p-4 font-semibold text-zinc-200"),
+                    elemento('td', track.Artista, "p-4 text-zinc-400"),
+                    elemento('td', track.Repeticiones, "p-4 text-center font-bold text-cyan-400"),
+                );
+                tablaCuerpo.appendChild(fila);
+            });
+        });
+
+        // ---- Comparador
+        function llenarLista(ul, canciones) {
+            ul.replaceChildren();
+            if (canciones.length === 0) {
+                ul.appendChild(elemento('li', "No le falta ninguna 🎉", "p-6 text-center text-zinc-500 italic"));
+                return;
+            }
+            canciones.forEach(c => {
+                const li = elemento('li', undefined, "p-4 hover:bg-zinc-900/30 transition-colors");
+                li.append(
+                    elemento('p', c.Título, "font-semibold text-zinc-200"),
+                    elemento('p', c.Artista || "Artista desconocido", "text-zinc-500 text-xs mt-0.5"),
+                );
+                ul.appendChild(li);
+            });
+        }
+
+        const formComparar = document.getElementById('form-comparar');
+        formComparar.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const resultados = document.getElementById('resultados-comparar');
+            const data = await enviar(formComparar, '/comparar', document.getElementById('loader-comparar'), resultados);
+            if (!data) return;
+
+            document.getElementById('cmp-nombre-a').textContent = `${data.a.nombre} (A)`;
+            document.getElementById('cmp-nombre-b').textContent = `${data.b.nombre} (B)`;
+            document.getElementById('cmp-comun').textContent =
+                `${data.en_comun} canciones en común · A: ${data.a.total} · B: ${data.b.total}`;
+
+            const diferencias = data.faltan_en_a.length + data.faltan_en_b.length;
+            const status = document.getElementById('cmp-status');
+            if (diferencias === 0) {
+                status.className = "px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400";
+                status.textContent = "Son iguales";
+            } else {
+                status.className = "px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400";
+                status.textContent = `${diferencias} diferencias`;
+            }
+
+            llenarLista(document.getElementById('cmp-lista-b'), data.faltan_en_b);
+            llenarLista(document.getElementById('cmp-lista-a'), data.faltan_en_a);
+            resultados.classList.remove('hidden');
         });
     </script>
 </body>

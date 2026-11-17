@@ -38,13 +38,14 @@
             >
             <button 
                 type="submit" 
-                class="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-zinc-950 font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-cyan-500/10 active:scale-95 text-sm"
+                id="btn-analizar"
+                class="bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-zinc-950 font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-cyan-500/10 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
                 Analizar Lista
             </button>
         </form>
 
-        <div id="loader" class="hidden flex-col items-center justify-center my-12 animate-pulse">
+        <div id="loader" class="hidden flex flex-col items-center justify-center my-12 animate-pulse">
             <div class="w-10 h-10 border-4 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin"></div>
             <p class="text-zinc-500 text-xs mt-3 tracking-wider uppercase">Analizando metadatos...</p>
         </div>
@@ -72,32 +73,49 @@
     </div>
 
     <script>
-        document.getElementById('form-analizar').addEventListener('submit', async (e) => {
+        const form = document.getElementById('form-analizar');
+        const boton = document.getElementById('btn-analizar');
+        const loader = document.getElementById('loader');
+        const resultados = document.getElementById('resultados');
+        const tablaCuerpo = document.getElementById('tabla-cuerpo');
+        const resTotal = document.getElementById('res-total');
+        const resStatus = document.getElementById('res-status');
+
+        // Crea una celda usando textContent para que los títulos no se interpreten como HTML (evita XSS)
+        function celda(texto, clases, colspan) {
+            const td = document.createElement('td');
+            td.className = clases;
+            td.textContent = texto;
+            if (colspan) td.colSpan = colspan;
+            return td;
+        }
+
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const urlInput = document.getElementById('url-input').value;
-            const loader = document.getElementById('loader');
-            const resultados = document.getElementById('resultados');
-            const tablaCuerpo = document.getElementById('tabla-cuerpo');
-            const resTotal = document.getElementById('res-total');
-            const resStatus = document.getElementById('res-status');
+            if (boton.disabled) return;
 
             // Resetear interfaz
+            boton.disabled = true;
             loader.classList.remove('hidden');
             resultados.classList.add('hidden');
-            tablaCuerpo.innerHTML = '';
-
-            const formData = new FormData();
-            formData.append('url', urlInput);
+            tablaCuerpo.replaceChildren();
 
             try {
-                const response = await fetch('/analizar', {
-                    method: 'POST',
-                    body: formData
-                });
+                let response;
+                try {
+                    response = await fetch('/analizar', { method: 'POST', body: new FormData(form) });
+                } catch {
+                    alert("Error de conexión con el servidor backend.");
+                    return;
+                }
 
-                const data = await response.json();
-                loader.classList.add('hidden');
+                let data;
+                try {
+                    data = await response.json();
+                } catch {
+                    alert(`El servidor respondió con un error (${response.status}). Intenta de nuevo más tarde.`);
+                    return;
+                }
 
                 if (!response.ok) {
                     alert(data.error || "Ocurrió un error inesperado.");
@@ -110,11 +128,9 @@
                 if (data.duplicados.length === 0) {
                     resStatus.className = "px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400";
                     resStatus.textContent = "Playlist Limpia";
-                    tablaCuerpo.innerHTML = `
-                        <tr>
-                            <td colspan="3" class="p-8 text-center text-zinc-500 italic">¡Felicidades, gue! No hay ninguna canción repetida.</td>
-                        </tr>
-                    `;
+                    const fila = document.createElement('tr');
+                    fila.appendChild(celda("¡Felicidades, gue! No hay ninguna canción repetida.", "p-8 text-center text-zinc-500 italic", 3));
+                    tablaCuerpo.appendChild(fila);
                 } else {
                     resStatus.className = "px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400";
                     resStatus.textContent = `${data.duplicados.length} Duplicados`;
@@ -122,18 +138,17 @@
                     data.duplicados.forEach(track => {
                         const fila = document.createElement('tr');
                         fila.className = "hover:bg-zinc-900/30 transition-colors";
-                        fila.innerHTML = `
-                            <td class="p-4 font-semibold text-zinc-200">${track.Título}</td>
-                            <td class="p-4 text-zinc-400">${track.Artista}</td>
-                            <td class="p-4 text-center font-bold text-cyan-400">${track.Repeticiones}</td>
-                        `;
+                        fila.append(
+                            celda(track.Título, "p-4 font-semibold text-zinc-200"),
+                            celda(track.Artista, "p-4 text-zinc-400"),
+                            celda(track.Repeticiones, "p-4 text-center font-bold text-cyan-400"),
+                        );
                         tablaCuerpo.appendChild(fila);
                     });
                 }
-
-            } catch (err) {
+            } finally {
                 loader.classList.add('hidden');
-                alert("Error de conexión con el servidor backend.");
+                boton.disabled = false;
             }
         });
     </script>

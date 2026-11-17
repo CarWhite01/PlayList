@@ -12,8 +12,8 @@ from analisis import buscar_duplicados, comparar
 
 logger = logging.getLogger(__name__)
 
-# Link de Ko-fi, Buy Me a Coffee, etc. Si no está definido, no se muestra el botón.
-DONACIONES_URL = os.getenv("DONACIONES_URL", "").strip()
+# Link de donaciones. Se puede cambiar con la variable DONACIONES_URL (vacía = sin botón).
+DONACIONES_URL = os.getenv("DONACIONES_URL", "https://ko-fi.com/carwhite01").strip()
 if DONACIONES_URL and not DONACIONES_URL.startswith("https://"):
     logger.warning("DONACIONES_URL debe empezar con https://; se ignora el botón de donaciones.")
     DONACIONES_URL = ""

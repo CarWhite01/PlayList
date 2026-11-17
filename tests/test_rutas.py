@@ -77,8 +77,8 @@ def test_misma_playlist_se_descarga_una_vez(monkeypatch):
     assert llamadas == ["P"] and r["en_comun"] == 1 and r["faltan_en_a"] == r["faltan_en_b"] == []
 
 
-def test_boton_donaciones_solo_si_hay_link(monkeypatch):
-    assert "Invítame un café" not in cliente.get("/").text
-    monkeypatch.setattr(main, "DONACIONES_URL", "https://ko-fi.com/ejemplo")
+def test_boton_donaciones(monkeypatch):
     html = cliente.get("/").text
-    assert "Invítame un café" in html and 'href="https://ko-fi.com/ejemplo"' in html
+    assert "Invítame un café" in html and 'href="https://ko-fi.com/carwhite01"' in html
+    monkeypatch.setattr(main, "DONACIONES_URL", "")
+    assert "Invítame un café" not in cliente.get("/").text

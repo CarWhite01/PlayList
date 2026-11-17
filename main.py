@@ -1,62 +1,105 @@
-from fastapi import FastAPI, Request, Form
+import logging
+import os
+import time
+from urllib.parse import parse_qs, urlparse
+
+from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from ytmusicapi import YTMusic
-import pandas as pd
-import re
+
+from analisis import buscar_duplicados, comparar
+
+logger = logging.getLogger(__name__)
+
+# Link de donaciones. Se puede cambiar con la variable DONACIONES_URL (vacía = sin botón).
+DONACIONES_URL = os.getenv("DONACIONES_URL", "https://ko-fi.com/carwhite01").strip()
+if DONACIONES_URL and not DONACIONES_URL.startswith("https://"):
+    logger.warning("DONACIONES_URL debe empezar con https://; se ignora el botón de donaciones.")
+    DONACIONES_URL = ""
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 ytmusic = YTMusic()  # No requiere login porque solo va a LEER playlists públicas/deslistadas
 
+
+class ErrorPlaylist(Exception):
+    """Error con un mensaje listo para mostrarse al usuario."""
+
+
 def extraer_playlist_id(url: str) -> str:
-    # Busca el patrón 'list=ID_DE_LA_PLAYLIST' en la URL
-    match = re.search(r"list=([A-Za-z0-9_-]+)", url)
-    return match.group(1) if match else url
+    """Obtiene el parámetro 'list' de una URL de YouTube; si no lo hay, asume que ya es un ID."""
+    parametros = parse_qs(urlparse(url).query)
+    return parametros.get("list", [url])[0].strip()
+
+
+def obtener_youtube(url: str) -> tuple[str, list[dict]]:
+    playlist_id = extraer_playlist_id(url)
+    if not playlist_id:
+        raise ErrorPlaylist("Ingresa la URL de una playlist.")
+    # A veces YouTube responde vacío por un momento: se intenta una segunda vez.
+    for intento in (1, 2):
+        try:
+            playlist = ytmusic.get_playlist(playlist_id, limit=None)
+            break
+        except Exception as e:
+            if intento == 2:
+                logger.exception("Error al obtener la playlist %s", playlist_id)
+                raise ErrorPlaylist(
+                    "No se pudo acceder a la playlist de YouTube. Verifica que sea pública o deslistada."
+                ) from e
+            time.sleep(1)
+
+    canciones = []
+    for track in playlist.get("tracks") or []:
+        artistas = track.get("artists") or []
+        canciones.append({
+            "titulo": track.get("title") or "Desconocido",
+            "artista": ", ".join(a["name"] for a in artistas if a and a.get("name")),
+        })
+    return playlist.get("title") or "Playlist de YouTube", canciones
+
+
+def respuesta_error(e: ErrorPlaylist) -> JSONResponse:
+    return JSONResponse(status_code=400, content={"error": str(e)})
+
 
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-   return templates.TemplateResponse(request=request, name="index.html")
+def home(request: Request):
+    return templates.TemplateResponse(request=request, name="index.html", context={"donaciones_url": DONACIONES_URL})
 
+
+# Las rutas son síncronas a propósito: FastAPI las ejecuta en un hilo aparte, así
+# una playlist grande no bloquea al servidor mientras se descargan los datos.
 @app.post("/analizar")
-async def analizar(url: str = Form(...)):
-    playlist_id = extraer_playlist_id(url.strip())
-    
+def analizar(url: str = Form(...)):
     try:
-        playlist = ytmusic.get_playlist(playlist_id, limit=3000)
-    except Exception as e:
-        return JSONResponse(status_code=400, content={"error": f"No se pudo acceder a la playlist. Verifica que sea pública o deslistada."})
+        _, canciones = obtener_youtube(url.strip())
+    except ErrorPlaylist as e:
+        return respuesta_error(e)
+    return {"duplicados": buscar_duplicados(canciones), "total": len(canciones)}
 
-    tracks = playlist.get('tracks', [])
-    if not tracks:
-        return JSONResponse(content={"duplicados": [], "total": 0})
 
-    datos_canciones = []
-    for track in tracks:
-        datos_canciones.append({
-            'Título': track.get('title', 'Desconocido'),
-            'Artista': ", ".join([a['name'] for a in track.get('artists', []) if 'name' in a])
-        })
-        
-    df = pd.DataFrame(datos_canciones)
-    df['Filtro_Titulo'] = df['Título'].str.lower().str.strip()
-    df['Filtro_Artista'] = df['Artista'].str.lower().str.strip()
-    
-    # Encontrar duplicados reales
-    duplicados_df = df[df.duplicated(subset=['Filtro_Titulo', 'Filtro_Artista'], keep=False)]
-    
-    if duplicados_df.empty:
-        return JSONResponse(content={"duplicados": [], "total": len(df)})
-        
-    # Agrupar y contar cuántas veces se repiten
-    conteo = duplicados_df.groupby(['Título', 'Artista']).size().reset_index(name='Repeticiones')
-    conteo = conteo.sort_values(by=['Título', 'Artista'])
-    
-    # Convertir a formato lista de diccionarios para enviarlo a la web
-    lista_duplicados = conteo.to_dict(orient='records')
-    
-    return JSONResponse(content={"duplicados": lista_duplicados, "total": len(df)})
+@app.post("/comparar")
+def comparar_playlists(url_a: str = Form(...), url_b: str = Form(...)):
+    try:
+        nombre_a, canciones_a = obtener_youtube(url_a.strip())
+        if extraer_playlist_id(url_a.strip()) == extraer_playlist_id(url_b.strip()):
+            nombre_b, canciones_b = nombre_a, canciones_a  # misma playlist: no se descarga dos veces
+        else:
+            nombre_b, canciones_b = obtener_youtube(url_b.strip())
+    except ErrorPlaylist as e:
+        return respuesta_error(e)
 
-if __name__ == '__main__':
+    return {
+        "a": {"nombre": nombre_a, "total": len(canciones_a)},
+        "b": {"nombre": nombre_b, "total": len(canciones_b)},
+        **comparar(canciones_a, canciones_b),
+    }
+
+
+if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", reload=True)
+
+    # Recarga automática solo en desarrollo: DEV=1 python main.py
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=os.getenv("DEV") == "1")

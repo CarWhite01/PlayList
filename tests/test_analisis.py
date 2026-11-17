@@ -14,7 +14,7 @@ def test_duplicados_agrupa_variantes():
     assert dup == [{"Título": "Despacito", "Artista": "Luis Fonsi", "Repeticiones": 2}]
 
 
-def test_youtube_contra_spotify_coinciden():
+def test_videos_contra_canciones_de_youtube_music():
     youtube = [
         c("Tití Me Preguntó (Official Video)", "Bad Bunny"),
         c("Bad Bunny - Me Porto Bonito ft. Chencho Corleone", "BadBunnyVEVO"),
@@ -22,17 +22,17 @@ def test_youtube_contra_spotify_coinciden():
         c("Shakira || BZRP Music Sessions #53 [Letra]", "Bizarrap"),
         c("Solo en YouTube", "Alguien"),
     ]
-    spotify = [
+    music = [
         c("Titi Me Pregunto", "Bad Bunny"),
         c("Me Porto Bonito", "Bad Bunny, Chencho Corleone"),
         c("La Bachata", "Manuel Turizo"),
         c("Shakira: Bzrp Music Sessions, Vol. 53", "Bizarrap, Shakira"),
-        c("Solo en Spotify", "Otra Persona"),
+        c("Solo en YouTube Music", "Otra Persona"),
     ]
-    r = comparar(youtube, spotify)
+    r = comparar(youtube, music)
     assert r["en_comun"] == 4
     assert "Solo en YouTube" in nombres(r["faltan_en_b"])
-    assert "Solo en Spotify" in nombres(r["faltan_en_a"])
+    assert "Solo en YouTube Music" in nombres(r["faltan_en_a"])
     for t in ("Tití Me Preguntó (Official Video)", "La Bachata"):
         assert t not in nombres(r["faltan_en_b"])
 
@@ -51,3 +51,10 @@ def test_listas_iguales_y_vacias():
 def test_faltantes_sin_repetir():
     r = comparar([c("Uno", "Art"), c("uno", "art")], [])
     assert len(r["faltan_en_b"]) == 1
+
+
+def test_titulos_en_otros_idiomas():
+    canciones = [c("聖誕星 (feat. 楊瑞代)", "Jay Chou"), c("Dynamite", "BTS"), c("소나기", "IU")]
+    assert comparar(canciones, canciones) == {"faltan_en_b": [], "faltan_en_a": [], "en_comun": 3}
+    r = comparar([c("聖誕星", "Jay Chou")], [c("稻香", "Jay Chou")])
+    assert r["en_comun"] == 0

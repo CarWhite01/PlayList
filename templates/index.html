@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Playlist Cleaner - Duplicados y comparador de playlists</title>
 
-    <meta name="description" content="Herramienta gratuita para detectar canciones repetidas en tus playlists de YouTube Music y comparar playlists de YouTube y Spotify para ver qué canciones faltan.">
-    <meta name="keywords" content="youtube music, spotify, limpiar playlist, borrar canciones repetidas, duplicados, comparar playlists, canciones faltantes, organizar musica, app gratis">
+    <meta name="description" content="Herramienta gratuita para detectar canciones repetidas en tus playlists de YouTube Music y comparar dos playlists para ver qué canciones faltan.">
+    <meta name="keywords" content="youtube music, limpiar playlist, borrar canciones repetidas, duplicados, comparar playlists, canciones faltantes, organizar musica, app gratis">
     <meta name="author" content="Carlos Josafat">
     <meta name="robots" content="index, follow">
 
     <meta property="og:title" content="Playlist Cleaner">
-    <meta property="og:description" content="Encuentra canciones repetidas y compara tus playlists de YouTube y Spotify con un solo clic.">
+    <meta property="og:description" content="Encuentra canciones repetidas y compara tus playlists de YouTube con un solo clic.">
     <meta property="og:type" content="website">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -23,30 +23,13 @@
         <h1 class="text-4xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
             Playlist Cleaner
         </h1>
-        <p class="text-zinc-400 mt-2 text-sm sm:text-base">Detecta canciones repetidas y compara tus playlists de YouTube y Spotify al instante, gue.</p>
+        <p class="text-zinc-400 mt-2 text-sm sm:text-base">Detecta canciones repetidas y compara tus playlists de YouTube al instante, gue.</p>
     </div>
-
-    {% if spotify_configurado %}
-    <div class="max-w-3xl w-full mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-3">
-        {% if spotify_conectado %}
-            <p class="text-sm text-zinc-300"><span class="text-emerald-400 font-bold">●</span> Spotify conectado</p>
-            <form method="post" action="/spotify/logout">
-                <button type="submit" class="text-xs text-zinc-400 hover:text-zinc-200 underline underline-offset-4">Desconectar</button>
-            </form>
-        {% else %}
-            <p class="text-sm text-zinc-400">Para usar playlists de Spotify, conecta tu cuenta.</p>
-            <a href="/spotify/login" class="bg-[#1DB954] hover:bg-[#1aa34a] text-zinc-950 font-bold px-5 py-2 rounded-xl text-sm transition-colors">Conectar Spotify</a>
-        {% endif %}
-    </div>
-    {% if spotify_estado == "error" %}
-    <p class="max-w-3xl w-full -mt-3 mb-6 text-sm text-amber-400">No se pudo conectar con Spotify. Inténtalo de nuevo.</p>
-    {% endif %}
-    {% endif %}
 
     <!-- Duplicados -->
     <section class="max-w-3xl w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl">
         <h2 class="text-lg font-bold text-zinc-100">Canciones repetidas</h2>
-        <p class="text-zinc-500 text-sm mb-4">Pega la URL de una playlist de YouTube{% if spotify_configurado %} o Spotify{% endif %}.</p>
+        <p class="text-zinc-500 text-sm mb-4">Pega la URL de una playlist de YouTube o YouTube Music.</p>
 
         <form id="form-analizar" class="flex flex-col sm:flex-row gap-3">
             <input
@@ -95,7 +78,7 @@
     <!-- Comparador -->
     <section class="max-w-3xl w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl mt-8">
         <h2 class="text-lg font-bold text-zinc-100">Comparar dos playlists</h2>
-        <p class="text-zinc-500 text-sm mb-4">Descubre qué canciones le faltan a cada una. Puedes mezclar YouTube{% if spotify_configurado %} y Spotify{% endif %}.</p>
+        <p class="text-zinc-500 text-sm mb-4">Descubre qué canciones le faltan a cada una. Funciona con YouTube y YouTube Music.</p>
 
         <form id="form-comparar" class="flex flex-col gap-3">
             <input type="text" name="url_a" required placeholder="URL de la playlist A..."

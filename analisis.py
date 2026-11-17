@@ -1,9 +1,9 @@
 """Búsqueda de duplicados y comparación de playlists.
 
-Las canciones llegan como {"titulo": str, "artista": str}. Como YouTube y
-Spotify escriben los nombres distinto ("Canción (Official Video)" contra
-"Canción", "Bad Bunny - Topic" contra "Bad Bunny"), antes de comparar se
-limpian títulos y artistas.
+Las canciones llegan como {"titulo": str, "artista": str}. Como una misma
+canción aparece con nombres distintos según si es video o canción de YouTube
+Music ("Canción (Official Video)" contra "Canción", "Bad Bunny - Topic" contra
+"Bad Bunny"), antes de comparar se limpian títulos y artistas.
 """
 
 import re
@@ -43,7 +43,7 @@ _RELLENO = re.compile(
     r"\b(?:official|oficial)\b(?:\s+(?:music|musical))?(?:\s+(?:video|audio|lyric video|visualizer|videoclip))?"
     r"|\bvideo\s+oficial\b|\baudio\s+oficial\b|\blyrics?\b|\bletra\b|\bvisualizer\b|\bhd\b|\b4k\b"
 )
-_NO_ALFANUMERICO = re.compile(r"[^a-z0-9]+")
+_NO_ALFANUMERICO = re.compile(r"[\W_]+")  # conserva letras de cualquier idioma (chino, coreano, árabe...)
 _SUFIJOS_CANAL = re.compile(r"(?:\s*-\s*topic|vevo|\bofficial\b|\boficial\b)\s*$")
 
 
@@ -90,6 +90,9 @@ def _preparar(c: dict) -> _Cancion:
 def _mismo_artista(a: _Cancion, b: _Cancion) -> bool:
     if not a.artistas or not b.artistas:
         return True  # sin información de artista, basta con el título
+    if set(a.artistas) & set(b.artistas):
+        return True  # mismo nombre exacto, aunque sea corto como "IU"
+    # Nombres de 3+ letras contenidos en el otro, p. ej. "badbunny" dentro de "badbunnyvevo".
     return (any(len(x) >= 3 and x in b.texto for x in a.artistas)
             or any(len(x) >= 3 and x in a.texto for x in b.artistas))
 
